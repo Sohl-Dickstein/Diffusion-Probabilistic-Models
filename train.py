@@ -131,18 +131,7 @@ if __name__ == '__main__':
     model_save_name = os.path.join(model_dir, 'model.pkl')
     extension_list.append(
         Checkpoint(model_save_name, every_n_epochs=args.ext_every_n, save_separately=['log']))
-    # DEBUG -- for some reason turning on test_monitoring triggers a large number of 
-    # float64/GPU warnings
-    train_monitor_vars = [cost]
-    norms, grad_norms = util.get_norms(blocks_model, algorithm.gradients)
-    train_monitor_vars.extend(norms + grad_norms)
-    train_monitor = TrainingDataMonitoring(
-        train_monitor_vars, prefix='train', after_batch=True, before_training=True)
-    extension_list.append(train_monitor)
-    test_monitor_vars = [cost]
-    test_monitor = DataStreamMonitoring(test_monitor_vars, test_stream, prefix='test')
-    extension_list.append(test_monitor)
-    ## generate plots
+    # generate plots
     extension_list.append(extensions.PlotMonitors(model_dir, every_n_epochs=args.ext_every_n))
     test_batch = next(test_stream.get_epoch_iterator())[0]
     extension_list.append(extensions.PlotSamples(dpm, algorithm, test_batch, model_dir,
@@ -158,6 +147,18 @@ if __name__ == '__main__':
     extension_list.append(
         extensions.PlotGradients(blocks_model, algorithm, train_batch, model_dir,
             every_n_epochs=args.ext_every_n, before_training=plot_before_training))
+    # # DEBUG -- incorporating train_monitor or test_monitor triggers a large number of 
+    # # float64 vs float32 GPU warnings, although monitoring still works. I think this is a Blocks
+    # # bug. Uncomment this code to have more information during debugging/development.
+    # train_monitor_vars = [cost]
+    # norms, grad_norms = util.get_norms(blocks_model, algorithm.gradients)
+    # train_monitor_vars.extend(norms + grad_norms)
+    # train_monitor = TrainingDataMonitoring(
+    #     train_monitor_vars, prefix='train', after_batch=True, before_training=True)
+    # extension_list.append(train_monitor)
+    # test_monitor_vars = [cost]
+    # test_monitor = DataStreamMonitoring(test_monitor_vars, test_stream, prefix='test')
+    # extension_list.append(test_monitor)
 
     ## train
     main_loop = MainLoop(model=blocks_model, algorithm=algorithm,

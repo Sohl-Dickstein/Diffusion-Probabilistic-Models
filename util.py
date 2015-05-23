@@ -18,7 +18,7 @@ def get_norms(model, gradients):
         norms.append(norm)
         grad = gradients[param]
         #l2_norm(grad) - doesn't work due to unknown shape
-        grad_norm = T.sqrt(T.sum(T.square(grad))) / T.prod(grad.shape).astype(theano.config.floatX)
+        grad_norm = T.sqrt(T.sum(T.square(grad))) / T.prod(grad.shape.astype(theano.config.floatX))
         grad_norm.name = 'grad_norm_' + param_name
         grad_norms.append(grad_norm)
     return norms, grad_norms

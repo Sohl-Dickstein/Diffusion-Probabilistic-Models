@@ -34,9 +34,9 @@ class DiffusionModel(Initializable):
         spatial_width - Spatial_width of training images
         n_colors - Number of color channels in training data. TODO -- Have not yet tested 
             n_colors > 1.
+        trajectory_length - The number of time steps in the trajectory.
         n_temporal_basis - The number of temporal basis functions to capture time-step 
             dependence of model.
-        trajectory_length - The number of time steps in the trajectory.
         n_hidden_dense_lower - The number of hidden units in each layer of the dense network 
             in the lower half of the MLP. Set to 0 to make a convolutional-only lower half.
         n_hidden_dense_lower_output - The number of outputs *per pixel* from the dense network
@@ -127,10 +127,12 @@ class DiffusionModel(Initializable):
         starting from a minibatch of images X_noisy, and at timestep t.
         """
         Z = self.mlp.apply(X_noisy)
-        mu_coeff, sigma_coeff = self.temporal_readout(Z, t)
+        mu_coeff, beta_coeff = self.temporal_readout(Z, t)
         # reverse variance is perturbation around forward variance
         beta_forward = self.get_beta_forward(t)
-        beta_reverse = T.nnet.sigmoid(sigma_coeff + util.logit(beta_forward))
+        # make impact of beta_coeff scaled appropriately with mu_coeff
+        beta_coeff_scaled = beta_coeff / np.sqrt(self.trajectory_length).astype(theano.config.floatX)
+        beta_reverse = T.nnet.sigmoid(beta_coeff_scaled + util.logit(beta_forward))
         # # reverse mean is decay towards mu_coeff
         # mu = (X_noisy - mu_coeff)*T.sqrt(1. - beta_reverse) + mu_coeff
         # reverse mean is a perturbation around the mean under forward
@@ -296,8 +298,8 @@ class DiffusionModel(Initializable):
         coeff_weights = T.dot(self.temporal_basis, t_weights)
         concat_coeffs = T.dot(Z, coeff_weights) 
         mu_coeff = concat_coeffs[:,:,:,:,0].dimshuffle(0,3,1,2)
-        sigma_coeff = concat_coeffs[:,:,:,:,1].dimshuffle(0,3,1,2)
-        return mu_coeff, sigma_coeff
+        beta_coeff = concat_coeffs[:,:,:,:,1].dimshuffle(0,3,1,2)
+        return mu_coeff, beta_coeff
 
 
     def generate_temporal_basis(self, trajectory_length, n_basis):

@@ -153,11 +153,11 @@ def decay_learning_rate(iteration, old_value):
     # TODO the numbers in this function should not be hard coded
 
     # this is called every epoch
-    # reduce the learning rate by 10 every 300 epochs
+    # reduce the learning rate by 10 every 1000 epochs
 
-    decay_rate = np.exp(np.log(0.1)/300.)
+    decay_rate = np.exp(np.log(0.1)/1000.)
     new_value = decay_rate*old_value
-    if new_value < 1e-4:
-        new_value = 1e-4
+    if new_value < 1e-5:
+        new_value = 1e-5
     print "learning rate %g"%new_value
     return np.float32(new_value)

@@ -30,9 +30,9 @@ import extensions
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--batch-size', default=128, type=int,
+    parser.add_argument('--batch-size', default=512, type=int,
                         help='Batch size')
-    parser.add_argument('--lr', default=1e-2, type=float,
+    parser.add_argument('--lr', default=1e-3, type=float,
                         help='Initial learning rate. ' + \
                         'Will be decayed until it\'s 1e-5.')
     parser.add_argument('--resume_file', default=None, type=str,
@@ -105,14 +105,14 @@ if __name__ == '__main__':
     cg_nodropout = ComputationGraph(cost)
     if args.dropout_rate > 0:
         # DEBUG this triggers an error on my machine
-        # dropout all the input variables
+        # apply dropout to all the input variables
         inputs = VariableFilter(roles=[INPUT])(cg_nodropout.variables)
         # dropconnect
         # inputs = VariableFilter(roles=[PARAMETER])(cg_nodropout.variables)
         cg = apply_dropout(cg_nodropout, inputs, args.dropout_rate)
     else:
         cg = cg_nodropout
-    step_compute = RMSProp(learning_rate=args.lr, max_scaling=1e8)
+    step_compute = RMSProp(learning_rate=args.lr, max_scaling=1e10)
     algorithm = GradientDescent(step_rule=CompositeRule([RemoveNotFinite(),
         step_compute]),
         params=cg.parameters, cost=cost)

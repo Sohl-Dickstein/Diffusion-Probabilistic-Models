@@ -15,6 +15,10 @@ class LeakyRelu(Activation):
     def apply(self, input_):
         return T.switch(input_ > 0, input_, 0.05*input_)
 
+dense_nonlinearity = LeakyRelu()
+# dense_nonlinearity = Tanh()
+conv_nonlinearity = LeakyRelu()
+
 class MultiLayerConvolution(Initializable):
     def __init__(self, n_layers, n_hidden, spatial_width, n_colors, filter_size=3):
         """
@@ -27,7 +31,7 @@ class MultiLayerConvolution(Initializable):
         self.children = []
         num_channels = n_colors
         for ii in xrange(n_layers):
-            conv_layer = ConvolutionalActivation(activation=LeakyRelu().apply,
+            conv_layer = ConvolutionalActivation(activation=conv_nonlinearity.apply,
                 filter_size=(filter_size,filter_size), num_filters=n_hidden,
                 num_channels=num_channels, image_size=(spatial_width, spatial_width),
                 # assume images are spatially smooth -- in which case output magnitude scales with
@@ -74,7 +78,7 @@ class MLP_conv_dense(Initializable):
         if n_hidden_dense_lower > 0 and n_layers_dense_lower > 0:
             n_input = n_colors*spatial_width**2
             n_output = n_hidden_dense_lower_output*spatial_width**2
-            self.mlp_dense_lower = MLP([Tanh()] * n_layers_conv,
+            self.mlp_dense_lower = MLP([dense_nonlinearity] * n_layers_conv,
                 [n_input] + [n_hidden_dense_lower] * (n_layers_conv-1) + [n_output],
                 name='MLP dense lower', weights_init=Orthogonal(), biases_init=Constant(0))
             self.children.append(self.mlp_dense_lower)
@@ -83,7 +87,7 @@ class MLP_conv_dense(Initializable):
 
         ## the upper layers (applied to each pixel independently)
         n_output = n_colors*n_temporal_basis*2 # "*2" for both mu and sigma
-        self.mlp_dense_upper = MLP([Tanh()] * (n_layers_dense_upper-1) + [Identity()],
+        self.mlp_dense_upper = MLP([dense_nonlinearity] * (n_layers_dense_upper-1) + [Identity()],
             [n_hidden_conv+n_hidden_dense_lower_output] + 
             [n_hidden_dense_upper] * (n_layers_dense_upper-1) + [n_output],
             name='MLP dense upper', weights_init=Orthogonal(), biases_init=Constant(0))

@@ -5,17 +5,15 @@ Extensions called during training to generate samples and diagnostic plots and p
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
-
-import theano.tensor as T
-import theano
 import numpy as np
 import os
+import theano.tensor as T
+import theano
+
+from blocks.extensions import SimpleExtension
 
 import viz
 import sampler
-
-from blocks.extensions import SimpleExtension
-from theano import shared
 
 
 class PlotSamples(SimpleExtension):
@@ -40,7 +38,7 @@ class PlotSamples(SimpleExtension):
             allow_input_downcast=True)
 
     def do(self, callback_name, *args):
-        base_fname_part1 = self.path + '/samples-' 
+        base_fname_part1 = self.path + '/samples-'
         base_fname_part2 = '_epoch%04d'%self.main_loop.status['epochs_done']
         sampler.generate_samples(self.model, self.get_mu_sigma,
             n_samples=self.n_samples, inpaint=False, denoise_sigma=None, X_true=None,

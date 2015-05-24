@@ -1,12 +1,16 @@
+"""
+This is the heart of the algorithm. Implements the objective function and mu
+and sigma estimators for a Gaussian diffusion probabilistic model
+"""
+
 import numpy as np
 import theano
 import theano.tensor as T
-import util
-import regression
 
-from blocks.bricks import (Activation, MLP, Initializable, Rectifier, Random, application, Identity)
-from blocks.bricks.conv import ConvolutionalActivation
-from blocks.initialization import IsotropicGaussian, Constant, Orthogonal
+from blocks.bricks import application, Initializable, Random
+
+import regression
+import util
 
 class DiffusionModel(Initializable):
     def __init__(self,
@@ -24,7 +28,7 @@ class DiffusionModel(Initializable):
             n_t_per_minibatch=1,
             step1_beta=0.001):
         """
-        Implements the objective function and mu and sigma estimators for a Gaussian diffusion 
+        Implements the objective function and mu and sigma estimators for a Gaussian diffusion
         probabilistic model, as described in the paper:
             Deep Unsupervised Learning using Nonequilibrium Thermodynamics
             Jascha Sohl-Dickstein, Eric A. Weiss, Niru Maheswaranathan, Surya Ganguli
@@ -32,12 +36,12 @@ class DiffusionModel(Initializable):
 
         Parameters are as follow:
         spatial_width - Spatial_width of training images
-        n_colors - Number of color channels in training data. TODO -- Have not yet tested 
+        n_colors - Number of color channels in training data. TODO -- Have not yet tested
             n_colors > 1.
         trajectory_length - The number of time steps in the trajectory.
-        n_temporal_basis - The number of temporal basis functions to capture time-step 
+        n_temporal_basis - The number of temporal basis functions to capture time-step
             dependence of model.
-        n_hidden_dense_lower - The number of hidden units in each layer of the dense network 
+        n_hidden_dense_lower - The number of hidden units in each layer of the dense network
             in the lower half of the MLP. Set to 0 to make a convolutional-only lower half.
         n_hidden_dense_lower_output - The number of outputs *per pixel* from the dense network
             in the lower half of the MLP. Total outputs are
@@ -78,7 +82,7 @@ class DiffusionModel(Initializable):
         min_beta_val = 1e-6
         min_beta_values = np.ones((self.trajectory_length,))*min_beta_val
         min_beta_values[0] += step1_beta
-        min_beta = theano.shared(value=min_beta_values.astype(theano.config.floatX), 
+        min_beta = theano.shared(value=min_beta_values.astype(theano.config.floatX),
             name='min beta')
         # (potentially learned) function for how beta changes with timestep
         # TODO add beta_perturb_coefficients to the parameters to be learned
@@ -147,7 +151,7 @@ class DiffusionModel(Initializable):
     def generate_forward_diffusion_sample(self, X_noiseless):
         """
         Corrupt a training image with t steps worth of Gaussian noise, and
-        return the corrupted image, as well as the mean and covariance of the 
+        return the corrupted image, as well as the mean and covariance of the
         posterior q(x^{t-1}|x^t, x^0).
         """
 
@@ -164,7 +168,7 @@ class DiffusionModel(Initializable):
         # choose a timestep in [1, self.trajectory_length-1].
         # note the reverse process is fixed for the very
         # first timestep, so we skip it.
-        # TODO for some reason random_integer is missing from the Blocks 
+        # TODO for some reason random_integer is missing from the Blocks
         # theano random number generator.
         t = T.floor(rng.uniform(size=(1,1), low=1, high=self.trajectory_length,
             dtype=theano.config.floatX))
@@ -296,7 +300,7 @@ class DiffusionModel(Initializable):
         Z = Z.reshape((n_images, self.spatial_width, self.spatial_width,
             self.n_colors, 2, self.n_temporal_basis))
         coeff_weights = T.dot(self.temporal_basis, t_weights)
-        concat_coeffs = T.dot(Z, coeff_weights) 
+        concat_coeffs = T.dot(Z, coeff_weights)
         mu_coeff = concat_coeffs[:,:,:,:,0].dimshuffle(0,3,1,2)
         beta_coeff = concat_coeffs[:,:,:,:,1].dimshuffle(0,3,1,2)
         return mu_coeff, beta_coeff

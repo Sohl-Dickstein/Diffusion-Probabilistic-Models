@@ -1,13 +1,12 @@
 import numpy as np
+import os
 import theano
 import theano.tensor as T
 import time
-import os
 
 logit = lambda u: T.log(u / (1.-u))
 logit_np = lambda u: np.log(u / (1.-u)).astype(theano.config.floatX)
 
-from blocks.theano_expressions import l2_norm
 def get_norms(model, gradients):
     """Compute norm of weights and their gradients divided by the number of elements"""
     norms = []
@@ -17,7 +16,6 @@ def get_norms(model, gradients):
         norm.name = 'norm_' + param_name
         norms.append(norm)
         grad = gradients[param]
-        #l2_norm(grad) - doesn't work due to unknown shape
         grad_norm = T.sqrt(T.sum(T.square(grad))) / T.prod(grad.shape.astype(theano.config.floatX))
         grad_norm.name = 'grad_norm_' + param_name
         grad_norms.append(grad_norm)

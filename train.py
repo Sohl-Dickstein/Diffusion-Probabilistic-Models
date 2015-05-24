@@ -6,27 +6,27 @@ import warnings
 import theano
 import theano.tensor as T
 
-from blocks.algorithms import (Scale, Adam, RMSProp, StepClipping, GradientDescent, CompositeRule, 
+from blocks.algorithms import (RMSProp, GradientDescent, CompositeRule,
     RemoveNotFinite)
-from blocks.main_loop import MainLoop
-from blocks.model import Model
-from blocks.extensions.saveload import Checkpoint
-from blocks.extensions.training import SharedVariableModifier
 from blocks.extensions import FinishAfter, Timing, Printing
-from blocks.graph import ComputationGraph, apply_dropout
-from blocks.filter import VariableFilter
-from blocks.roles import INPUT, PARAMETER
 from blocks.extensions.monitoring import (TrainingDataMonitoring,
                                           DataStreamMonitoring)
+from blocks.extensions.saveload import Checkpoint
+from blocks.extensions.training import SharedVariableModifier
+from blocks.filter import VariableFilter
+from blocks.graph import ComputationGraph, apply_dropout
+from blocks.main_loop import MainLoop
+from blocks.model import Model
+from blocks.roles import INPUT, PARAMETER
 
 from fuel.datasets import MNIST
 from fuel.streams import DataStream
-from fuel.schemes import ShuffledScheme, ConstantScheme
+from fuel.schemes import ShuffledScheme
 from fuel.transformers import Flatten, ScaleAndShift
 
+import extensions
 import model
 import util
-import extensions
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -147,7 +147,7 @@ if __name__ == '__main__':
     extension_list.append(
         extensions.PlotGradients(blocks_model, algorithm, train_batch, model_dir,
             every_n_epochs=args.ext_every_n, before_training=plot_before_training))
-    # # DEBUG -- incorporating train_monitor or test_monitor triggers a large number of 
+    # # DEBUG -- incorporating train_monitor or test_monitor triggers a large number of
     # # float64 vs float32 GPU warnings, although monitoring still works. I think this is a Blocks
     # # bug. Uncomment this code to have more information during debugging/development.
     # train_monitor_vars = [cost]

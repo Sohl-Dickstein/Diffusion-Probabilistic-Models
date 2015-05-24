@@ -25,7 +25,7 @@ def generate_inpaint_mask(n_samples, n_colors, spatial_width):
     inpainting.
     """
     mask = np.zeros((n_samples, n_colors, spatial_width, spatial_width), dtype=bool)
-    # simple mask -- just mask out half the image   
+    # simple mask -- just mask out half the image
     mask[:,:,:,spatial_width/2:] = True
     return mask.ravel()
 
@@ -43,7 +43,6 @@ def generate_samples(model, get_mu_sigma,
 
     spatial_width = model.spatial_width
     n_colors = model.n_colors
-    trajectory_length = model.trajectory_length
 
     # set the initial state X^T of the reverse trajectory
     XT = rng.normal(size=(n_samples,n_colors,spatial_width,spatial_width))

@@ -1,10 +1,11 @@
-import numpy as np
-import theano
-import theano.tensor as T
-import util
+"""
+Defines the function approximators
+"""
 
-from blocks.bricks import (Activation, MLP, Initializable, Rectifier, Tanh, Random, application,
-    Identity)
+import numpy as np
+import theano.tensor as T
+
+from blocks.bricks import Activation, MLP, Initializable, application, Identity
 from blocks.bricks.conv import ConvolutionalActivation
 from blocks.initialization import IsotropicGaussian, Constant, Orthogonal
 
@@ -35,7 +36,7 @@ class MultiLayerConvolution(Initializable):
                 filter_size=(filter_size,filter_size), num_filters=n_hidden,
                 num_channels=num_channels, image_size=(spatial_width, spatial_width),
                 # assume images are spatially smooth -- in which case output magnitude scales with
-                # # filter pixels rather than square root of # filter pixels, so initialize 
+                # # filter pixels rather than square root of # filter pixels, so initialize
                 # accordingly.
                 weights_init=IsotropicGaussian(std=np.sqrt(1./(n_hidden))/filter_size**2),
                 biases_init=Constant(0), border_mode='full', name="conv%d"%ii)
@@ -60,8 +61,8 @@ class MLP_conv_dense(Initializable):
         spatial_width, n_colors, n_temporal_basis):
         """
         The multilayer perceptron, that provides temporal weighting coefficients for mu and sigma
-        images. This consists of a lower segment with a convolutional MLP, and optionally with a 
-        dense MLP in parallel. The upper segment then consists of a per-pixel dense MLP 
+        images. This consists of a lower segment with a convolutional MLP, and optionally with a
+        dense MLP in parallel. The upper segment then consists of a per-pixel dense MLP
         (convolutional MLP with 1x1 kernel).
         """
         super(MLP_conv_dense, self).__init__()
@@ -88,7 +89,7 @@ class MLP_conv_dense(Initializable):
         ## the upper layers (applied to each pixel independently)
         n_output = n_colors*n_temporal_basis*2 # "*2" for both mu and sigma
         self.mlp_dense_upper = MLP([dense_nonlinearity] * (n_layers_dense_upper-1) + [Identity()],
-            [n_hidden_conv+n_hidden_dense_lower_output] + 
+            [n_hidden_conv+n_hidden_dense_lower_output] +
             [n_hidden_dense_upper] * (n_layers_dense_upper-1) + [n_output],
             name='MLP dense upper', weights_init=Orthogonal(), biases_init=Constant(0))
         self.children.append(self.mlp_dense_upper)

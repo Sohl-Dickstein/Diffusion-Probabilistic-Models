@@ -6,7 +6,10 @@ This repository provides a reference implementation of the method described in t
 > International Conference on Machine Learning. 2015<br>
 > http://arxiv.org/abs/1503.03585
 
-The essential idea behind the algorithm, inspired by non-equilibrium statistical physics, is to systematically and slowly destroy structure in a data distribution through an iterative forward diffusion process. We then train a reverse diffusion process that restores structure in data, yielding a highly flexible and tractable generative model of the data. This approach allows us to rapidly learn, sample from, and evaluate probabilities in deep generative models with thousands of layers or time steps, as well as to compute conditional and posterior probabilities under the learned model. 
+From the abstract: 
+The essential idea behind the algorithm, inspired by non-equilibrium statistical physics, is to systematically and slowly destroy structure in a data distribution through an iterative forward diffusion process. 
+We then train a reverse diffusion process that restores structure in data, yielding a highly flexible and tractable generative model of the data. 
+This approach allows us to rapidly learn, sample from, and evaluate probabilities in deep generative models with thousands of layers or time steps, as well as to compute conditional and posterior probabilities under the learned model. 
 
 ## Using the Software
 
@@ -26,11 +29,15 @@ Logging information is printed to the terminal once per training epoch, includin
 
 Figures showing samples from the model, parameters, gradients, and training progress are also output periodically (every 25 epochs by default -- see ``train.py``).
 
-The samples from the model are of three types -- standard samples, samples inpainting the left half of masked images, and samples denoising images with Gaussian noise added (by default, the signal-to-noise ratio is 1). This demonstrate the straightforward way in which inpainting, denoising, and sampling from a posterior in general can be performed using this framework.
+The samples from the model are of three types -- standard samples, samples inpainting the left half of masked images, and samples denoising images with Gaussian noise added (by default, the signal-to-noise ratio is 1). This demonstrate the straightforward way in which inpainting, denoising, and sampling from a posterior in general can be performed using this framework. 
+Here is what samples look like after 825 training epochs 
+(the minimium noise variance of the generative model noise level is set by `step1_beta` in ``model.py``).
+
+![Samples from diffusion model.](https://github.com/Sohl-Dickstein/Diffusion-Probabilistic-Models/blob/master/samples-_t0000_epoch0825.pdf)
 
 ## Miscellaneous
 
-**Multi-scale convolution** - As described in the paper, multi-scale convolutional layers were used when applying this algorithm to large images. I am in the process of implementing multi-scale convolutional layers in Blocks, so this should be available soon.
+**Multi-scale convolution** - As described in the paper, multi-scale convolutional layers were used when applying this algorithm to large images. This is not yet included in this implementation. I am in the process of implementing multi-scale convolutional layers in Blocks, so this should be available soon.
 
 **Different nonlinearities** - In the paper, we used soft ReLU units in the convolutional layers, and tanh units in the dense layers. In this implementation, I used leaky ReLU units everywhere. 
 

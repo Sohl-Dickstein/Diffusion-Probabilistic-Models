@@ -32,8 +32,7 @@ Figures showing samples from the model, parameters, gradients, and training prog
 The samples from the model are of three types -- standard samples, samples inpainting the left half of masked images, and samples denoising images with Gaussian noise added (by default, the signal-to-noise ratio is 1). This demonstrate the straightforward way in which inpainting, denoising, and sampling from a posterior in general can be performed using this framework. 
 Here is what samples look like after 825 training epochs 
 (the minimium noise variance of the generative model noise level is set by `step1_beta` in ``model.py``).
-
-![Samples from diffusion model.](https://github.com/Sohl-Dickstein/Diffusion-Probabilistic-Models/blob/master/samples-_t0000_epoch0825.pdf)
+<img src="https://github.com/Sohl-Dickstein/Diffusion-Probabilistic-Models/blob/master/samples-_t0000_epoch0825.png" width="500">
 
 ## Miscellaneous
 

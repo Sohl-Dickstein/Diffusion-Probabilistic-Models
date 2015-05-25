@@ -13,7 +13,7 @@ This approach allows us to rapidly learn, sample from, and evaluate probabilitie
 
 ## Using the Software
 
-In order to train a diffusion probabilistic model on MNIST, simply install dependencies (see below), and then run
+In order to train a diffusion probabilistic model on the default dataset of MNIST, simply install dependencies (see below), and then run
 ``python train.py``.
 
 ### Dependencies

@@ -86,7 +86,8 @@ def show_receptive_fields(theta, P=None, n_colors=None, max_display=100, grid_wa
         ptch = np.zeros((n_colors*img_w**2,))
         ptch[:theta.shape[0]] = theta[:,jj]
         if n_colors==3:
-            ptch = ptch.reshape((img_w, img_w, n_colors))
+            ptch = ptch.reshape((n_colors, img_w, img_w))
+            ptch = ptch.transpose((1,2,0)) # move color channels to end
         else:
             ptch = ptch.reshape((img_w, img_w))
         ptch -= vmin
@@ -97,7 +98,7 @@ def show_receptive_fields(theta, P=None, n_colors=None, max_display=100, grid_wa
     return True
 
 
-def plot_parameter(theta_in, base_fname_part1, base_fname_part2="", title = ''):
+def plot_parameter(theta_in, base_fname_part1, base_fname_part2="", title = '', n_colors=None):
     """
     Save both a raw and receptive field style plot of the contents of theta_in.
     base_fname_part1 provides the mandatory root of the filename.
@@ -133,7 +134,7 @@ def plot_parameter(theta_in, base_fname_part1, base_fname_part2="", title = ''):
         if len(shp) == 1:
             theta = theta.reshape((-1,1))
         plt.figure(figsize=[8,8])
-        if show_receptive_fields(theta):
+        if show_receptive_fields(theta, n_colors=n_colors):
             plt.suptitle(title + "receptive fields")
             plt.savefig(base_fname_part1 + '_rf_' + base_fname_part2 + '.pdf')
         plt.close()
@@ -145,7 +146,7 @@ def plot_images(X, fname):
     """
     ## plot
     # move color to end
-    Xcol = X.transpose((0,2,3,1)).reshape((X.shape[0],-1)).T
+    Xcol = X.reshape((X.shape[0],-1,)).T
     plt.figure(figsize=[8,8])
     if show_receptive_fields(Xcol, n_colors=X.shape[1]):
         plt.savefig(fname + '.pdf')

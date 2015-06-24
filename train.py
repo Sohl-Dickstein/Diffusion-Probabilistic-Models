@@ -19,7 +19,6 @@ from blocks.main_loop import MainLoop
 from blocks.model import Model
 from blocks.roles import INPUT, PARAMETER
 
-from fuel.datasets import MNIST
 from fuel.streams import DataStream
 from fuel.schemes import ShuffledScheme
 from fuel.transformers import Flatten, ScaleAndShift
@@ -47,6 +46,10 @@ def parse_args():
                         help='Dictionary string to be eval()d containing model arguments.')
     parser.add_argument('--dropout_rate', type=float, default=0.,
                         help='Rate to use for dropout during training+testing.')
+    parser.add_argument('--dataset', type=str, default='MNIST',
+                        help='Name of dataset to use.')
+    parser.add_argument('--plot_before_training', type=bool, default=False,
+                        help='Save diagnostic plots at epoch 0, before any training.')
     args = parser.parse_args()
 
     model_args = eval('dict(' + args.model_args + ')')
@@ -66,12 +69,25 @@ if __name__ == '__main__':
         continue_training(args.resume_file)
 
     ## load the training data
-    dataset_train = MNIST('train', sources=('features',))
+    if args.dataset == 'MNIST':
+        from fuel.datasets import MNIST
+        dataset_train = MNIST(['train'], sources=('features',))
+        dataset_test = MNIST(['test'], sources=('features',))
+        n_colors = 1
+        spatial_width = 28
+    elif args.dataset == 'CIFAR10':
+        from fuel.datasets import CIFAR10
+        dataset_train = CIFAR10(['train'], sources=('features',))
+        dataset_test = CIFAR10(['test'], sources=('features',))
+        n_colors = 3
+        spatial_width = 32
+    else:
+        raise ValueError("Unknown dataset %s."%args.dataset)
+
     train_stream = Flatten(DataStream.default_stream(dataset_train,
                               iteration_scheme=ShuffledScheme(
                                   examples=dataset_train.num_examples,
                                   batch_size=args.batch_size)))
-    dataset_test = MNIST('test', sources=('features',))
     test_stream = Flatten(DataStream.default_stream(dataset_test,
                              iteration_scheme=ShuffledScheme(
                                  examples=dataset_test.num_examples,
@@ -87,15 +103,8 @@ if __name__ == '__main__':
     train_stream = ScaleAndShift(train_stream, scl, shft)
     test_stream = ScaleAndShift(test_stream, scl, shft)
 
-    # TODO The training data above should be normalized to 0 mean and variance 1!!!!!
-    # If training is turned on for the forward diffusion rate beta, then the data not being
-    # mean subtracted and scaled to have variance 1 will cause a bias.
-    # Even without training beta, it will add a constant offset to the lower bound on the log
-    # likelihood.
-    spatial_width = 28
-
     ## initialize the model
-    dpm = model.DiffusionModel(spatial_width, **model_args)
+    dpm = model.DiffusionModel(spatial_width, n_colors, **model_args)
     dpm.initialize()
 
     ## set up optimization
@@ -125,9 +134,8 @@ if __name__ == '__main__':
     extension_list.append(FinishAfter(after_n_epochs=100001))
 
     ## set up logging
-    plot_before_training=True
     extension_list.extend([Timing(), Printing()])
-    model_dir = util.create_log_dir(args, dpm.name)
+    model_dir = util.create_log_dir(args, dpm.name + '_' + args.dataset)
     model_save_name = os.path.join(model_dir, 'model.pkl')
     extension_list.append(
         Checkpoint(model_save_name, every_n_epochs=args.ext_every_n, save_separately=['log']))
@@ -135,18 +143,19 @@ if __name__ == '__main__':
     extension_list.append(extensions.PlotMonitors(model_dir, every_n_epochs=args.ext_every_n))
     test_batch = next(test_stream.get_epoch_iterator())[0]
     extension_list.append(extensions.PlotSamples(dpm, algorithm, test_batch, model_dir,
-        every_n_epochs=args.ext_every_n, before_training=plot_before_training))
+        every_n_epochs=args.ext_every_n, before_training=args.plot_before_training))
     internal_state = dpm.internal_state(features)
     train_batch = next(train_stream.get_epoch_iterator())[0]
     extension_list.append(
-        extensions.PlotInternalState(internal_state, features, train_batch, model_dir,
-            every_n_epochs=args.ext_every_n, before_training=plot_before_training))
+        extensions.PlotInternalState(dpm, blocks_model, internal_state, features, train_batch, model_dir,
+            every_n_epochs=args.ext_every_n, before_training=args.plot_before_training))
     extension_list.append(
-        extensions.PlotParameters(blocks_model, model_dir,
-            every_n_epochs=args.ext_every_n, before_training=plot_before_training))
+        extensions.PlotParameters(dpm, blocks_model, model_dir,
+            every_n_epochs=args.ext_every_n, before_training=args.plot_before_training))
     extension_list.append(
-        extensions.PlotGradients(blocks_model, algorithm, train_batch, model_dir,
-            every_n_epochs=args.ext_every_n, before_training=plot_before_training))
+        extensions.PlotGradients(dpm, blocks_model, algorithm, train_batch, model_dir,
+            every_n_epochs=args.ext_every_n, before_training=args.plot_before_training))
+    # console monitors
     # # DEBUG -- incorporating train_monitor or test_monitor triggers a large number of
     # # float64 vs float32 GPU warnings, although monitoring still works. I think this is a Blocks
     # # bug. Uncomment this code to have more information during debugging/development.

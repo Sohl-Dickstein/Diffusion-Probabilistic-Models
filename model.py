@@ -15,7 +15,7 @@ import util
 class DiffusionModel(Initializable):
     def __init__(self,
             spatial_width,
-            n_colors=1,
+            n_colors,
             trajectory_length=1000,
             n_temporal_basis=10,
             n_hidden_dense_lower=500,

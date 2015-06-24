@@ -38,6 +38,7 @@ class PlotSamples(SimpleExtension):
             allow_input_downcast=True)
 
     def do(self, callback_name, *args):
+        print "generating samples"
         base_fname_part1 = self.path + '/samples-'
         base_fname_part2 = '_epoch%04d'%self.main_loop.status['epochs_done']
         sampler.generate_samples(self.model, self.get_mu_sigma,
@@ -52,54 +53,62 @@ class PlotSamples(SimpleExtension):
 
 
 class PlotParameters(SimpleExtension):
-    def __init__(self, model, path, **kwargs):
+    def __init__(self, model, blocks_model, path, **kwargs):
         super(PlotParameters, self).__init__(**kwargs)
-        self.model = model
         self.path = path
+        self.model = model
+        self.blocks_model = blocks_model
 
     def do(self, callback_name, *args):
-        for param_name, param in self.model.params.iteritems():
+        print "plotting parameters"
+        for param_name, param in self.blocks_model.params.iteritems():
             filename_safe_name = '-'.join(param_name.split('/')[2:]).replace(' ', '_')
             base_fname_part1 = self.path + '/params-' + filename_safe_name
             base_fname_part2 = '_epoch%04d'%self.main_loop.status['epochs_done']
             viz.plot_parameter(param.get_value(), base_fname_part1, base_fname_part2,
-                title=param_name)
+                title=param_name, n_colors=self.model.n_colors)
 
 
 class PlotGradients(SimpleExtension):
-    def __init__(self, model, algorithm, X, path, **kwargs):
+    def __init__(self, model, blocks_model, algorithm, X, path, **kwargs):
         super(PlotGradients, self).__init__(**kwargs)
-        self.model = model
         self.path = path
         self.X = X
+        self.model = model
+        self.blocks_model = blocks_model
         gradients = []
-        for param_name in sorted(self.model.params.keys()):
-            gradients.append(algorithm.gradients[self.model.params[param_name]])
+        for param_name in sorted(self.blocks_model.params.keys()):
+            gradients.append(algorithm.gradients[self.blocks_model.params[param_name]])
         self.grad_f = theano.function(algorithm.inputs, gradients, allow_input_downcast=True)
 
     def do(self, callback_name, *args):
+        print "plotting gradients"
         grad_vals = self.grad_f(self.X)
-        keynames = sorted(self.model.params.keys())
+        keynames = sorted(self.blocks_model.params.keys())
         for ii in xrange(len(keynames)):
             param_name = keynames[ii]
             val = grad_vals[ii]
             filename_safe_name = '-'.join(param_name.split('/')[2:]).replace(' ', '_')
             base_fname_part1 = self.path + '/grads-' + filename_safe_name
             base_fname_part2 = '_epoch%04d'%self.main_loop.status['epochs_done']
-            viz.plot_parameter(val, base_fname_part1, base_fname_part2, title="grad " + param_name)
+            viz.plot_parameter(val, base_fname_part1, base_fname_part2,
+                title="grad " + param_name, n_colors=self.model.n_colors)
 
 
 class PlotInternalState(SimpleExtension):
-    def __init__(self, state, features, X, path, **kwargs):
+    def __init__(self, model, blocks_model, state, features, X, path, **kwargs):
         super(PlotInternalState, self).__init__(**kwargs)
         self.path = path
         self.X = X
+        self.model = model
+        self.blocks_model = blocks_model
         self.internal_state_f = theano.function([features], state, allow_input_downcast=True)
         self.internal_state_names = []
         for var in state:
             self.internal_state_names.append(var.name)
 
     def do(self, callback_name, *args):
+        print "plotting internal state of network"
         state = self.internal_state_f(self.X)
         for ii in xrange(len(state)):
             param_name = self.internal_state_names[ii]
@@ -107,7 +116,8 @@ class PlotInternalState(SimpleExtension):
             filename_safe_name = param_name.replace(' ', '_').replace('/', '-')
             base_fname_part1 = self.path + '/state-' + filename_safe_name
             base_fname_part2 = '_epoch%04d'%self.main_loop.status['epochs_done']
-            viz.plot_parameter(val, base_fname_part1, base_fname_part2, title="state " + param_name)
+            viz.plot_parameter(val, base_fname_part1, base_fname_part2,
+                title="state " + param_name, n_colors=self.model.n_colors)
 
 
 class PlotMonitors(SimpleExtension):
@@ -117,6 +127,7 @@ class PlotMonitors(SimpleExtension):
         self.burn_in_iters = burn_in_iters
 
     def do(self, callback_name, *args):
+        print "plotting monitors"
         df = self.main_loop.log.to_dataframe()
         iter_number  = df.tail(1).index
         # Throw out the first burn_in values

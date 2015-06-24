@@ -141,8 +141,14 @@ class PlotMonitors(SimpleExtension):
         # If we don't have any non-nan dataframes, don't plot
         if len(df) == 0:
             return
-        axs = df.interpolate(method='linear').plot(
-            subplots=True, legend=False, figsize=(5, len(cols)*2))
+        try:
+            axs = df.interpolate(method='linear').plot(
+                subplots=True, legend=False, figsize=(5, len(cols)*2))
+        except TypeError:
+            # This starting breaking after updating Blocks.
+            print "Failed to generate monitoring plots."
+            return
+
         for ax, cname in zip(axs, cols):
             ax.set_title(cname)
         fn = os.path.join(self.path,

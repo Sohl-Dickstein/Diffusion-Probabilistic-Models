@@ -140,7 +140,8 @@ if __name__ == '__main__':
     extension_list.append(
         Checkpoint(model_save_name, every_n_epochs=args.ext_every_n, save_separately=['log']))
     # generate plots
-    extension_list.append(extensions.PlotMonitors(model_dir, every_n_epochs=args.ext_every_n))
+    extension_list.append(extensions.PlotMonitors(model_dir,
+        every_n_epochs=args.ext_every_n, before_training=args.plot_before_training))
     test_batch = next(test_stream.get_epoch_iterator())[0]
     extension_list.append(extensions.PlotSamples(dpm, algorithm, test_batch, model_dir,
         every_n_epochs=args.ext_every_n, before_training=args.plot_before_training))

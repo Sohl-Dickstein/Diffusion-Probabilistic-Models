@@ -128,7 +128,12 @@ class PlotMonitors(SimpleExtension):
 
     def do(self, callback_name, *args):
         print "plotting monitors"
-        df = self.main_loop.log.to_dataframe()
+        try:
+            df = self.main_loop.log.to_dataframe()
+        except AttributeError:
+            # This starting breaking after a Blocks update.
+            print "Failed to generate monitoring plots due to Blocks interface change."
+            return
         iter_number  = df.tail(1).index
         # Throw out the first burn_in values
         # as the objective is often much larger
@@ -145,8 +150,8 @@ class PlotMonitors(SimpleExtension):
             axs = df.interpolate(method='linear').plot(
                 subplots=True, legend=False, figsize=(5, len(cols)*2))
         except TypeError:
-            # This starting breaking after updating Blocks.
-            print "Failed to generate monitoring plots."
+            # This starting breaking after a different Blocks update.
+            print "Failed to generate monitoring plots due to Blocks interface change."
             return
 
         for ax, cname in zip(axs, cols):

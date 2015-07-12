@@ -4,6 +4,7 @@ Defines the function approximators
 
 import numpy as np
 import theano.tensor as T
+# from theano.tensor.signal import downsample
 
 from blocks.bricks import Activation, MLP, Initializable, application, Identity
 from blocks.bricks.conv import ConvolutionalActivation
@@ -20,45 +21,120 @@ dense_nonlinearity = LeakyRelu()
 # dense_nonlinearity = Tanh()
 conv_nonlinearity = LeakyRelu()
 
+class MultiScaleConvolution(Initializable):
+    def __init__(self, num_channels, num_filters, spatial_width, num_scales, filter_size, downsample_method='meanout', name=""):
+        """
+        A brick implementing a single layer in a multi-scale convolutional network.
+        """
+        super(MultiScaleConvolution, self).__init__()
+
+        self.num_scales = num_scales
+        self.filter_size = filter_size
+        self.num_filters = num_filters
+        self.spatial_width = spatial_width
+        self.downsample_method = downsample_method
+        self.children = []
+
+        print "adding MultiScaleConvolution layer"
+
+        # for scale in range(self.num_scales-1, -1, -1):
+        for scale in range(self.num_scales):
+            print "scale %d"%scale
+            conv_layer = ConvolutionalActivation(activation=conv_nonlinearity.apply,
+                filter_size=(filter_size,filter_size), num_filters=num_filters,
+                num_channels=num_channels, image_size=(spatial_width/2**scale, spatial_width/2**scale),
+                # assume images are spatially smooth -- in which case output magnitude scales with
+                # # filter pixels rather than square root of # filter pixels, so initialize
+                # accordingly.
+                weights_init=IsotropicGaussian(std=np.sqrt(1./(num_filters))/filter_size**2),
+                biases_init=Constant(0), border_mode='full', name=name+"scale%d"%scale)
+            self.children.append(conv_layer)
+
+    def downsample(self, imgs_in, scale):
+        """
+        Downsample an image by a factor of 2**scale
+        """
+        imgs = imgs_in.copy()
+
+        if scale == 0:
+            return imgs
+
+        # if self.downsample_method == 'maxout':
+        #     print "maxout",
+        #     imgs_maxout = downsample.max_pool_2d(imgs.copy(), (2**scale, 2**scale), ignore_border=False)
+        # else:
+        #     print "meanout",
+        #     imgs_maxout = self.downsample_mean_pool_2d(imgs.copy(), (2**scale, 2**scale))
+
+        num_imgs = imgs.shape[0]
+        num_layers = imgs.shape[1]
+        nlx0 = imgs.shape[2]
+        nlx1 = imgs.shape[3]
+
+        print "reshape using scale %d"%scale
+        imgs = imgs.reshape((num_imgs, num_layers, nlx0/2**scale, 2**scale, nlx1/2**scale, 2**scale))
+        imgs = T.mean(imgs, axis=5)
+        imgs = T.mean(imgs, axis=3)
+        return imgs
+
+    @application
+    def apply(self, X):
+
+        print "MultiScaleConvolution apply"
+
+        nsamp = X.shape[0]
+
+        Z = 0
+        overshoot = (self.filter_size - 1)/2
+        imgs_accum = 0 # accumulate the output image
+        for scale in range(self.num_scales-1, -1, -1):
+            print "scale %d"%scale
+            # downsample image to appropriate scale
+            imgs_down = self.downsample(X, scale)
+            # do a convolutional transformation on it
+            conv_layer = self.children[scale]
+            imgs_down_conv = conv_layer.apply(imgs_down)
+            # crop the edge so it's the same size as the input at that scale
+            imgs_down_conv_croppoed = imgs_down_conv[:,:,overshoot:-overshoot,overshoot:-overshoot]
+            imgs_accum += imgs_down_conv_croppoed
+
+            if scale > 0:
+                # scale up by factor of 2
+                layer_width = self.spatial_width/2**scale
+                imgs_accum = imgs_accum.reshape((nsamp, self.num_filters, layer_width, 1, layer_width, 1))
+                imgs_accum = T.concatenate((imgs_accum, imgs_accum), axis=5)
+                imgs_accum = T.concatenate((imgs_accum, imgs_accum), axis=3)
+                imgs_accum = imgs_accum.reshape((nsamp, self.num_filters, layer_width*2, layer_width*2))
+
+        return imgs_accum
+
+
 class MultiLayerConvolution(Initializable):
-    def __init__(self, n_layers, n_hidden, spatial_width, n_colors, filter_size=3):
+    def __init__(self, n_layers, n_hidden, spatial_width, n_colors, n_scales, filter_size=3):
         """
         A brick implementing a multi-layer convolutional network.
         TODO make this multi-scale multi-layer convolution
         """
         super(MultiLayerConvolution, self).__init__()
 
-        self.filter_size = filter_size
         self.children = []
         num_channels = n_colors
         for ii in xrange(n_layers):
-            conv_layer = ConvolutionalActivation(activation=conv_nonlinearity.apply,
-                filter_size=(filter_size,filter_size), num_filters=n_hidden,
-                num_channels=num_channels, image_size=(spatial_width, spatial_width),
-                # assume images are spatially smooth -- in which case output magnitude scales with
-                # # filter pixels rather than square root of # filter pixels, so initialize
-                # accordingly.
-                weights_init=IsotropicGaussian(std=np.sqrt(1./(n_hidden))/filter_size**2),
-                biases_init=Constant(0), border_mode='full', name="conv%d"%ii)
+            conv_layer = MultiScaleConvolution(num_channels, n_hidden, spatial_width, n_scales, filter_size, name="layer%d_"%ii)
             self.children.append(conv_layer)
             num_channels = n_hidden
 
     @application
     def apply(self, X):
-        """
-        Take in noisy input image and output temporal coefficients for mu and sigma.
-        """
         Z = X
-        overshoot = (self.filter_size - 1)/2
         for conv_layer in self.children:
             Z = conv_layer.apply(Z)
-            Z = Z[:,:,overshoot:-overshoot,overshoot:-overshoot]
         return Z
 
 class MLP_conv_dense(Initializable):
     def __init__(self, n_layers_conv, n_layers_dense_lower, n_layers_dense_upper,
         n_hidden_conv, n_hidden_dense_lower, n_hidden_dense_lower_output, n_hidden_dense_upper,
-        spatial_width, n_colors, n_temporal_basis):
+        spatial_width, n_colors, n_scales, n_temporal_basis):
         """
         The multilayer perceptron, that provides temporal weighting coefficients for mu and sigma
         images. This consists of a lower segment with a convolutional MLP, and optionally with a
@@ -74,7 +150,7 @@ class MLP_conv_dense(Initializable):
         self.n_hidden_conv = n_hidden_conv
 
         ## the lower layers
-        self.mlp_conv = MultiLayerConvolution(n_layers_conv, n_hidden_conv, spatial_width, n_colors)
+        self.mlp_conv = MultiLayerConvolution(n_layers_conv, n_hidden_conv, spatial_width, n_colors, n_scales)
         self.children = [self.mlp_conv]
         if n_hidden_dense_lower > 0 and n_layers_dense_lower > 0:
             n_input = n_colors*spatial_width**2

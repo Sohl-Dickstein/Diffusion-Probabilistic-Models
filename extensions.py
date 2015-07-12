@@ -175,7 +175,7 @@ def decay_learning_rate(iteration, old_value):
     # this is called every epoch
     # reduce the learning rate by 10 every 1000 epochs
 
-    decay_rate = np.exp(np.log(0.1)/1000.)
+    decay_rate = np.exp(np.log(0.1)/5000.)
     new_value = decay_rate*old_value
     if new_value < 1e-5:
         new_value = 1e-5

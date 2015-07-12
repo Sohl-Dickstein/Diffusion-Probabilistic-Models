@@ -26,6 +26,7 @@ class DiffusionModel(Initializable):
             n_layers_dense_lower=4,
             n_layers_dense_upper=2,
             n_t_per_minibatch=1,
+            n_scales=1,
             step1_beta=0.001):
         """
         Implements the objective function and mu and sigma estimators for a Gaussian diffusion
@@ -68,7 +69,7 @@ class DiffusionModel(Initializable):
         self.mlp = regression.MLP_conv_dense(
             n_layers_conv, n_layers_dense_lower, n_layers_dense_upper,
             n_hidden_conv, n_hidden_dense_lower, n_hidden_dense_lower_output, n_hidden_dense_upper,
-            spatial_width, n_colors, n_temporal_basis)
+            spatial_width, n_colors, n_scales, n_temporal_basis)
         self.temporal_basis = self.generate_temporal_basis(trajectory_length, n_temporal_basis)
         self.beta_arr = self.generate_beta_arr(step1_beta)
         self.children = [self.mlp]

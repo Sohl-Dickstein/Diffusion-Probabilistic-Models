@@ -157,18 +157,18 @@ if __name__ == '__main__':
         extensions.PlotGradients(dpm, blocks_model, algorithm, train_batch, model_dir,
             every_n_epochs=args.ext_every_n, before_training=args.plot_before_training))
     # console monitors
-    # # DEBUG -- incorporating train_monitor or test_monitor triggers a large number of
-    # # float64 vs float32 GPU warnings, although monitoring still works. I think this is a Blocks
-    # # bug. Uncomment this code to have more information during debugging/development.
-    # train_monitor_vars = [cost]
-    # norms, grad_norms = util.get_norms(blocks_model, algorithm.gradients)
-    # train_monitor_vars.extend(norms + grad_norms)
-    # train_monitor = TrainingDataMonitoring(
-    #     train_monitor_vars, prefix='train', after_batch=True, before_training=True)
-    # extension_list.append(train_monitor)
-    # test_monitor_vars = [cost]
-    # test_monitor = DataStreamMonitoring(test_monitor_vars, test_stream, prefix='test')
-    # extension_list.append(test_monitor)
+    # DEBUG -- incorporating train_monitor or test_monitor triggers a large number of
+    # float64 vs float32 GPU warnings, although monitoring still works. I think this is a Blocks
+    # bug. Uncomment this code to have more information during debugging/development.
+    train_monitor_vars = [cost]
+    norms, grad_norms = util.get_norms(blocks_model, algorithm.gradients)
+    train_monitor_vars.extend(norms + grad_norms)
+    train_monitor = TrainingDataMonitoring(
+        train_monitor_vars, prefix='train', after_batch=True, before_training=True)
+    extension_list.append(train_monitor)
+    test_monitor_vars = [cost]
+    test_monitor = DataStreamMonitoring(test_monitor_vars, test_stream, prefix='test')
+    extension_list.append(test_monitor)
 
     ## train
     main_loop = MainLoop(model=blocks_model, algorithm=algorithm,

@@ -61,6 +61,9 @@ def parse_args():
 
 
 if __name__ == '__main__':
+    # DEBUG
+    batches_per_epoch = 100
+
     args, model_args = parse_args()
 
     if args.resume_file is not None:
@@ -81,6 +84,12 @@ if __name__ == '__main__':
         dataset_test = CIFAR10(['test'], sources=('features',))
         n_colors = 3
         spatial_width = 32
+    elif args.dataset == 'IMAGENET':
+        from imagenet_data import IMAGENET
+        spatial_width = 256
+        dataset_train = IMAGENET(['train'], width=spatial_width)
+        dataset_test = IMAGENET(['test'], width=spatial_width)
+        n_colors = 3
     else:
         raise ValueError("Unknown dataset %s."%args.dataset)
 
@@ -130,7 +139,7 @@ if __name__ == '__main__':
         SharedVariableModifier(step_compute.learning_rate,
             extensions.decay_learning_rate,
             after_batch=False,
-            every_n_epochs=1, ))
+            every_n_batches=batches_per_epoch, ))
     extension_list.append(FinishAfter(after_n_epochs=100001))
 
     ## set up logging
@@ -138,36 +147,36 @@ if __name__ == '__main__':
     model_dir = util.create_log_dir(args, dpm.name + '_' + args.dataset)
     model_save_name = os.path.join(model_dir, 'model.pkl')
     extension_list.append(
-        Checkpoint(model_save_name, every_n_epochs=args.ext_every_n, save_separately=['log']))
+        Checkpoint(model_save_name, every_n_batches=args.ext_every_n*batches_per_epoch, save_separately=['log']))
     # generate plots
     extension_list.append(extensions.PlotMonitors(model_dir,
-        every_n_epochs=args.ext_every_n, before_training=args.plot_before_training))
+        every_n_batches=args.ext_every_n*batches_per_epoch, before_training=args.plot_before_training))
     test_batch = next(test_stream.get_epoch_iterator())[0]
     extension_list.append(extensions.PlotSamples(dpm, algorithm, test_batch, model_dir,
-        every_n_epochs=args.ext_every_n, before_training=args.plot_before_training))
+        every_n_batches=args.ext_every_n*batches_per_epoch, before_training=args.plot_before_training))
     internal_state = dpm.internal_state(features)
     train_batch = next(train_stream.get_epoch_iterator())[0]
-    extension_list.append(
-        extensions.PlotInternalState(dpm, blocks_model, internal_state, features, train_batch, model_dir,
-            every_n_epochs=args.ext_every_n, before_training=args.plot_before_training))
+    # extension_list.append(
+    #     extensions.PlotInternalState(dpm, blocks_model, internal_state, features, train_batch, model_dir,
+    #         every_n_batches=args.ext_every_n*batches_per_epoch, before_training=args.plot_before_training))
     extension_list.append(
         extensions.PlotParameters(dpm, blocks_model, model_dir,
-            every_n_epochs=args.ext_every_n, before_training=args.plot_before_training))
-    extension_list.append(
-        extensions.PlotGradients(dpm, blocks_model, algorithm, train_batch, model_dir,
-            every_n_epochs=args.ext_every_n, before_training=args.plot_before_training))
-    # console monitors
-    # DEBUG -- incorporating train_monitor or test_monitor triggers a large number of
-    # float64 vs float32 GPU warnings, although monitoring still works. I think this is a Blocks
-    # bug. Uncomment this code to have more information during debugging/development.
+            every_n_batches=args.ext_every_n*batches_per_epoch, before_training=args.plot_before_training))
+    # extension_list.append(
+    #     extensions.PlotGradients(dpm, blocks_model, algorithm, train_batch, model_dir,
+    #         every_n_batches=args.ext_every_n*batches_per_epoch, before_training=args.plot_before_training))
+    # # console monitors
+    # # DEBUG -- incorporating train_monitor or test_monitor triggers a large number of
+    # # float64 vs float32 GPU warnings, although monitoring still works. I think this is a Blocks
+    # # bug. Uncomment this code to have more information during debugging/development.
     train_monitor_vars = [cost]
-    norms, grad_norms = util.get_norms(blocks_model, algorithm.gradients)
-    train_monitor_vars.extend(norms + grad_norms)
+    # norms, grad_norms = util.get_norms(blocks_model, algorithm.gradients)
+    # train_monitor_vars.extend(norms + grad_norms)
     train_monitor = TrainingDataMonitoring(
         train_monitor_vars, prefix='train', after_batch=True, before_training=True)
     extension_list.append(train_monitor)
     test_monitor_vars = [cost]
-    test_monitor = DataStreamMonitoring(test_monitor_vars, test_stream, prefix='test')
+    test_monitor = DataStreamMonitoring(test_monitor_vars, test_stream, prefix='test', before_training=True)
     extension_list.append(test_monitor)
 
     ## train

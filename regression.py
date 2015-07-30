@@ -71,7 +71,7 @@ class MultiScaleConvolution(Initializable):
         nlx0 = imgs.shape[2]
         nlx1 = imgs.shape[3]
 
-        print "reshape using scale %d"%scale
+        # downsample
         imgs = imgs.reshape((num_imgs, num_layers, nlx0/2**scale, 2**scale, nlx1/2**scale, 2**scale))
         imgs = T.mean(imgs, axis=5)
         imgs = T.mean(imgs, axis=3)
@@ -88,12 +88,14 @@ class MultiScaleConvolution(Initializable):
         overshoot = (self.filter_size - 1)/2
         imgs_accum = 0 # accumulate the output image
         for scale in range(self.num_scales-1, -1, -1):
-            print "scale %d"%scale
             # downsample image to appropriate scale
             imgs_down = self.downsample(X, scale)
             # do a convolutional transformation on it
             conv_layer = self.children[scale]
+            # NOTE this is different than described in the paper, since each conv_layer
+            # includes a nonlinearity -- it's not just one nonlinearity at the end
             imgs_down_conv = conv_layer.apply(imgs_down)
+
             # crop the edge so it's the same size as the input at that scale
             imgs_down_conv_croppoed = imgs_down_conv[:,:,overshoot:-overshoot,overshoot:-overshoot]
             imgs_accum += imgs_down_conv_croppoed
@@ -106,7 +108,7 @@ class MultiScaleConvolution(Initializable):
                 imgs_accum = T.concatenate((imgs_accum, imgs_accum), axis=3)
                 imgs_accum = imgs_accum.reshape((nsamp, self.num_filters, layer_width*2, layer_width*2))
 
-        return imgs_accum
+        return imgs_accum/self.num_scales
 
 
 class MultiLayerConvolution(Initializable):

@@ -29,6 +29,7 @@ class PlotSamples(SimpleExtension):
         super(PlotSamples, self).__init__(**kwargs)
         self.model = model
         self.path = path
+        n_samples = np.min([n_samples, X.shape[0]])
         self.X = X[:n_samples].reshape(
             (n_samples, model.n_colors, model.spatial_width, model.spatial_width))
         self.n_samples = n_samples
@@ -40,7 +41,7 @@ class PlotSamples(SimpleExtension):
     def do(self, callback_name, *args):
         print "generating samples"
         base_fname_part1 = self.path + '/samples-'
-        base_fname_part2 = '_epoch%04d'%self.main_loop.status['epochs_done']
+        base_fname_part2 = '_batch%06d'%self.main_loop.status['iterations_done']
         sampler.generate_samples(self.model, self.get_mu_sigma,
             n_samples=self.n_samples, inpaint=False, denoise_sigma=None, X_true=None,
             base_fname_part1=base_fname_part1, base_fname_part2=base_fname_part2)
@@ -64,7 +65,7 @@ class PlotParameters(SimpleExtension):
         for param_name, param in self.blocks_model.params.iteritems():
             filename_safe_name = '-'.join(param_name.split('/')[2:]).replace(' ', '_')
             base_fname_part1 = self.path + '/params-' + filename_safe_name
-            base_fname_part2 = '_epoch%04d'%self.main_loop.status['epochs_done']
+            base_fname_part2 = '_batch%06d'%self.main_loop.status['iterations_done']
             viz.plot_parameter(param.get_value(), base_fname_part1, base_fname_part2,
                 title=param_name, n_colors=self.model.n_colors)
 
@@ -90,7 +91,7 @@ class PlotGradients(SimpleExtension):
             val = grad_vals[ii]
             filename_safe_name = '-'.join(param_name.split('/')[2:]).replace(' ', '_')
             base_fname_part1 = self.path + '/grads-' + filename_safe_name
-            base_fname_part2 = '_epoch%04d'%self.main_loop.status['epochs_done']
+            base_fname_part2 = '_batch%06d'%self.main_loop.status['iterations_done']
             viz.plot_parameter(val, base_fname_part1, base_fname_part2,
                 title="grad " + param_name, n_colors=self.model.n_colors)
 
@@ -115,7 +116,7 @@ class PlotInternalState(SimpleExtension):
             val = state[ii]
             filename_safe_name = param_name.replace(' ', '_').replace('/', '-')
             base_fname_part1 = self.path + '/state-' + filename_safe_name
-            base_fname_part2 = '_epoch%04d'%self.main_loop.status['epochs_done']
+            base_fname_part2 = '_batch%06d'%self.main_loop.status['iterations_done']
             viz.plot_parameter(val, base_fname_part1, base_fname_part2,
                 title="state " + param_name, n_colors=self.model.n_colors)
 
@@ -157,14 +158,14 @@ class PlotMonitors(SimpleExtension):
         for ax, cname in zip(axs, cols):
             ax.set_title(cname)
         fn = os.path.join(self.path,
-            'monitors_subplots_epoch%04d.png' % self.main_loop.status['epochs_done'])
+            'monitors_subplots_batch%06d.png' % self.main_loop.status['iterations_done'])
         plt.savefig(fn, bbox_inches='tight')
 
         plt.clf()
         df.plot(subplots=False, figsize=(15,10))
         plt.gcf().tight_layout()
         fn = os.path.join(self.path,
-            'monitors_epoch%04d.png' % self.main_loop.status['epochs_done'])
+            'monitors_batch%06d.png' % self.main_loop.status['iterations_done'])
         plt.savefig(fn, bbox_inches='tight')
         plt.close('all')
 
@@ -175,7 +176,7 @@ def decay_learning_rate(iteration, old_value):
     # this is called every epoch
     # reduce the learning rate by 10 every 1000 epochs
 
-    decay_rate = np.exp(np.log(0.1)/5000.)
+    decay_rate = np.exp(np.log(0.1)/1000.)
     new_value = decay_rate*old_value
     if new_value < 1e-5:
         new_value = 1e-5

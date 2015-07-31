@@ -66,13 +66,15 @@ class MultiScaleConvolution(Initializable):
         #     print "meanout",
         #     imgs_maxout = self.downsample_mean_pool_2d(imgs.copy(), (2**scale, 2**scale))
 
-        num_imgs = imgs.shape[0]
-        num_layers = imgs.shape[1]
-        nlx0 = imgs.shape[2]
-        nlx1 = imgs.shape[3]
+        num_imgs = imgs.shape[0].astype('int16')
+        num_layers = imgs.shape[1].astype('int16')
+        nlx0 = imgs.shape[2].astype('int16')
+        nlx1 = imgs.shape[3].astype('int16')
+
+        scalepow = np.int16(2**scale)
 
         # downsample
-        imgs = imgs.reshape((num_imgs, num_layers, nlx0/2**scale, 2**scale, nlx1/2**scale, 2**scale))
+        imgs = imgs.reshape((num_imgs, num_layers, nlx0/scalepow, scalepow, nlx1/scalepow, scalepow))
         imgs = T.mean(imgs, axis=5)
         imgs = T.mean(imgs, axis=3)
         return imgs
@@ -82,7 +84,7 @@ class MultiScaleConvolution(Initializable):
 
         print "MultiScaleConvolution apply"
 
-        nsamp = X.shape[0]
+        nsamp = X.shape[0].astype('int16')
 
         Z = 0
         overshoot = (self.filter_size - 1)/2
@@ -180,7 +182,7 @@ class MLP_conv_dense(Initializable):
         Y = self.mlp_conv.apply(X)
         Y = Y.dimshuffle(0,2,3,1)
         if self.n_hidden_dense_lower > 0:
-            n_images = X.shape[0]
+            n_images = X.shape[0].astype('int16')
             X = X.reshape((n_images, self.n_colors*self.spatial_width**2))
             Y_dense = self.mlp_dense_lower.apply(X)
             Y_dense = Y_dense.reshape((n_images, self.spatial_width, self.spatial_width,

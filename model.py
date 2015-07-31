@@ -61,8 +61,8 @@ class DiffusionModel(Initializable):
         super(DiffusionModel, self).__init__()
 
         self.n_t_per_minibatch = n_t_per_minibatch
-        self.spatial_width = spatial_width
-        self.n_colors = n_colors
+        self.spatial_width = np.int16(spatial_width)
+        self.n_colors = np.int16(n_colors)
         self.n_temporal_basis = n_temporal_basis
         self.trajectory_length = trajectory_length
 
@@ -164,7 +164,7 @@ class DiffusionModel(Initializable):
         # X_noiseless -= T.mean(X_noiseless)
         # X_noiseless /= T.std(X_noiseless)
 
-        n_images = X_noiseless.shape[0]
+        n_images = X_noiseless.shape[0].astype('int16')
         rng = Random().theano_rng
         # choose a timestep in [1, self.trajectory_length-1].
         # note the reverse process is fixed for the very
@@ -296,7 +296,7 @@ class DiffusionModel(Initializable):
         Z contains coefficients for spatial basis functions for each pixel for
         both mu and sigma.
         """
-        n_images = Z.shape[0]
+        n_images = Z.shape[0].astype('int16')
         t_weights = self.get_t_weights(t)
         Z = Z.reshape((n_images, self.spatial_width, self.spatial_width,
             self.n_colors, 2, self.n_temporal_basis))

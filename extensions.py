@@ -39,6 +39,10 @@ class PlotSamples(SimpleExtension):
             allow_input_downcast=True)
 
     def do(self, callback_name, *args):
+
+        import sys
+        sys.setrecursionlimit(10000000)
+
         print "generating samples"
         base_fname_part1 = self.path + '/samples-'
         base_fname_part2 = '_batch%06d'%self.main_loop.status['iterations_done']
@@ -61,6 +65,10 @@ class PlotParameters(SimpleExtension):
         self.blocks_model = blocks_model
 
     def do(self, callback_name, *args):
+
+        import sys
+        sys.setrecursionlimit(10000000)
+
         print "plotting parameters"
         for param_name, param in self.blocks_model.params.iteritems():
             filename_safe_name = '-'.join(param_name.split('/')[2:]).replace(' ', '_')

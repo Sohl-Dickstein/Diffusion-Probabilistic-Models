@@ -62,7 +62,9 @@ def parse_args():
 
 if __name__ == '__main__':
     # DEBUG
-    batches_per_epoch = 100
+    batches_per_epoch = 400
+    import sys
+    sys.setrecursionlimit(10000000)
 
     args, model_args = parse_args()
 
@@ -86,7 +88,7 @@ if __name__ == '__main__':
         spatial_width = 32
     elif args.dataset == 'IMAGENET':
         from imagenet_data import IMAGENET
-        spatial_width = 256
+        spatial_width = 128
         dataset_train = IMAGENET(['train'], width=spatial_width)
         dataset_test = IMAGENET(['test'], width=spatial_width)
         n_colors = 3
@@ -169,17 +171,18 @@ if __name__ == '__main__':
     # # DEBUG -- incorporating train_monitor or test_monitor triggers a large number of
     # # float64 vs float32 GPU warnings, although monitoring still works. I think this is a Blocks
     # # bug. Uncomment this code to have more information during debugging/development.
-    train_monitor_vars = [cost]
+    # train_monitor_vars = [cost]
     # norms, grad_norms = util.get_norms(blocks_model, algorithm.gradients)
     # train_monitor_vars.extend(norms + grad_norms)
-    train_monitor = TrainingDataMonitoring(
-        train_monitor_vars, prefix='train', after_batch=True, before_training=True)
-    extension_list.append(train_monitor)
-    test_monitor_vars = [cost]
-    test_monitor = DataStreamMonitoring(test_monitor_vars, test_stream, prefix='test', before_training=True)
-    extension_list.append(test_monitor)
+    # train_monitor = TrainingDataMonitoring(
+    #     train_monitor_vars, prefix='train', after_batch=True, before_training=True)
+    # extension_list.append(train_monitor)
+    # test_monitor_vars = [cost]
+    # test_monitor = DataStreamMonitoring(test_monitor_vars, test_stream, prefix='test', before_training=True)
+    # extension_list.append(test_monitor)
 
     ## train
+    sys.setrecursionlimit(10000000)
     main_loop = MainLoop(model=blocks_model, algorithm=algorithm,
                          data_stream=train_stream,
                          extensions=extension_list)

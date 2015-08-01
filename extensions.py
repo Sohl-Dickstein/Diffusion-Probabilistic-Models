@@ -33,8 +33,8 @@ class PlotSamples(SimpleExtension):
         self.X = X[:n_samples].reshape(
             (n_samples, model.n_colors, model.spatial_width, model.spatial_width))
         self.n_samples = n_samples
-        X_noisy = T.tensor4('X noisy samp')
-        t = T.matrix('t samp')
+        X_noisy = T.tensor4('X noisy samp', dtype=theano.config.floatX)
+        t = T.matrix('t samp', dtype=theano.config.floatX)
         self.get_mu_sigma = theano.function([X_noisy, t], model.get_mu_sigma(X_noisy, t),
             allow_input_downcast=True)
 
@@ -70,7 +70,8 @@ class PlotParameters(SimpleExtension):
         sys.setrecursionlimit(10000000)
 
         print "plotting parameters"
-        for param_name, param in self.blocks_model.params.iteritems():
+        for param in self.blocks_model.parameters:
+            param_name = param.name
             filename_safe_name = '-'.join(param_name.split('/')[2:]).replace(' ', '_')
             base_fname_part1 = self.path + '/params-' + filename_safe_name
             base_fname_part2 = '_batch%06d'%self.main_loop.status['iterations_done']
@@ -86,14 +87,14 @@ class PlotGradients(SimpleExtension):
         self.model = model
         self.blocks_model = blocks_model
         gradients = []
-        for param_name in sorted(self.blocks_model.params.keys()):
-            gradients.append(algorithm.gradients[self.blocks_model.params[param_name]])
+        for param_name in sorted(self.blocks_model.parameters.keys()):
+            gradients.append(algorithm.gradients[self.blocks_model.parameters[param_name]])
         self.grad_f = theano.function(algorithm.inputs, gradients, allow_input_downcast=True)
 
     def do(self, callback_name, *args):
         print "plotting gradients"
         grad_vals = self.grad_f(self.X)
-        keynames = sorted(self.blocks_model.params.keys())
+        keynames = sorted(self.blocks_model.parameters.keys())
         for ii in xrange(len(keynames)):
             param_name = keynames[ii]
             val = grad_vals[ii]
@@ -183,10 +184,11 @@ def decay_learning_rate(iteration, old_value):
 
     # this is called every epoch
     # reduce the learning rate by 10 every 1000 epochs
+    min_value = 1e-4
 
     decay_rate = np.exp(np.log(0.1)/1000.)
     new_value = decay_rate*old_value
-    if new_value < 1e-5:
-        new_value = 1e-5
+    if new_value < min_value:
+        new_value = min_value
     print "learning rate %g"%new_value
     return np.float32(new_value)

@@ -62,7 +62,7 @@ def parse_args():
 
 if __name__ == '__main__':
     # DEBUG
-    batches_per_epoch = 400
+    batches_per_epoch = 500
     import sys
     sys.setrecursionlimit(10000000)
 
@@ -135,7 +135,7 @@ if __name__ == '__main__':
     step_compute = RMSProp(learning_rate=args.lr, max_scaling=1e10)
     algorithm = GradientDescent(step_rule=CompositeRule([RemoveNotFinite(),
         step_compute]),
-        params=cg.parameters, cost=cost)
+        parameters=cg.parameters, cost=cost)
     extension_list = []
     extension_list.append(
         SharedVariableModifier(step_compute.learning_rate,

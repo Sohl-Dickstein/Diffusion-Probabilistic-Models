@@ -111,7 +111,7 @@ class DiffusionModel(Initializable):
         (if t is not an integer, the weights will linearly interpolate)
         """
         n_seg = self.trajectory_length
-        t_compare = T.arange(n_seg).reshape((1,n_seg))
+        t_compare = T.arange(n_seg, dtype=theano.config.floatX).reshape((1,n_seg))
         diff = abs(T.addbroadcast(t,1) - T.addbroadcast(t_compare,0))
         t_weights = T.max(T.join(1, (-diff+1).reshape((n_seg,1)), T.zeros((n_seg,1))), axis=1)
         return t_weights.reshape((-1,1))

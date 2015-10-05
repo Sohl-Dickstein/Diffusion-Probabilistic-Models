@@ -200,7 +200,7 @@ class LogLikelihood(SimpleExtension):
     def print_stats(self, L_gap):
         larr = np.array(L_gap)
         mn = np.mean(larr)
-        sd = np.std(larr)
+        sd = np.std(larr, ddof=1)
         stderr = sd / np.sqrt(len(L_gap))
 
         print "eval batch=%05d  K=%g bits/pix  standard error=%g bits/pix  Z-score rescale %g"%(

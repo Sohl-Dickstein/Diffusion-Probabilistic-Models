@@ -17,7 +17,7 @@ from blocks.extensions.training import SharedVariableModifier
 from blocks.filter import VariableFilter
 from blocks.graph import ComputationGraph, apply_dropout
 from blocks.main_loop import MainLoop
-from blocks.model import Model
+import blocks.model
 from blocks.roles import INPUT, PARAMETER
 
 from fuel.streams import DataStream
@@ -116,7 +116,7 @@ if __name__ == '__main__':
     # scale is applied before shift
     train_stream = ScaleAndShift(train_stream, scl, shft)
     test_stream = ScaleAndShift(test_stream, scl, shft)
-    baseline_uniform_noise = 1./255. # appropriate for fuel MNIST and CIFAR10 at least
+    baseline_uniform_noise = 1./255. # appropriate for MNIST and CIFAR10 Fuel datasets, which are scaled [0,1]
     uniform_noise = baseline_uniform_noise/scl
 
     ## initialize the model
@@ -126,7 +126,7 @@ if __name__ == '__main__':
     ## set up optimization
     features = T.matrix('features', dtype=theano.config.floatX)
     cost = dpm.cost(features)
-    blocks_model = Model(cost)
+    blocks_model = blocks.model.Model(cost)
     cg_nodropout = ComputationGraph(cost)
     if args.dropout_rate > 0:
         # DEBUG this triggers an error on my machine

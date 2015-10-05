@@ -58,7 +58,7 @@ class DiffusionModel(Initializable):
             each minibatch at.
         step1_beta - The lower bound on the noise variance of the first diffusion step. This is
             the minimum variance of the learned model.
-        uniform_noise - Add uniform noise between [-uniform_noise, uniform_noise] to the input.
+        uniform_noise - Add uniform noise between [-uniform_noise/2, uniform_noise/2] to the input.
         """
         super(DiffusionModel, self).__init__()
 

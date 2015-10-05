@@ -27,7 +27,9 @@ class DiffusionModel(Initializable):
             n_layers_dense_upper=2,
             n_t_per_minibatch=1,
             n_scales=1,
-            step1_beta=0.001):
+            step1_beta=0.001,
+            uniform_noise = 0,
+            ):
         """
         Implements the objective function and mu and sigma estimators for a Gaussian diffusion
         probabilistic model, as described in the paper:
@@ -37,8 +39,7 @@ class DiffusionModel(Initializable):
 
         Parameters are as follow:
         spatial_width - Spatial_width of training images
-        n_colors - Number of color channels in training data. TODO -- Have not yet tested
-            n_colors > 1.
+        n_colors - Number of color channels in training data.
         trajectory_length - The number of time steps in the trajectory.
         n_temporal_basis - The number of temporal basis functions to capture time-step
             dependence of model.
@@ -57,6 +58,7 @@ class DiffusionModel(Initializable):
             each minibatch at.
         step1_beta - The lower bound on the noise variance of the first diffusion step. This is
             the minimum variance of the learned model.
+        uniform_noise - Add uniform noise between [-uniform_noise, uniform_noise] to the input.
         """
         super(DiffusionModel, self).__init__()
 
@@ -65,6 +67,7 @@ class DiffusionModel(Initializable):
         self.n_colors = np.int16(n_colors)
         self.n_temporal_basis = n_temporal_basis
         self.trajectory_length = trajectory_length
+        self.uniform_noise = uniform_noise
 
         self.mlp = regression.MLP_conv_dense(
             n_layers_conv, n_layers_dense_lower, n_layers_dense_upper,
@@ -142,6 +145,13 @@ class DiffusionModel(Initializable):
         # mu = (X_noisy - mu_coeff)*T.sqrt(1. - beta_reverse) + mu_coeff
         # reverse mean is a perturbation around the mean under forward
         # process
+
+
+        # # DEBUG -- use these lines to test objective is 0 for isotropic Gaussian model
+        # beta_reverse = beta_forward
+        # mu_coeff = mu_coeff*0
+
+
         mu = X_noisy*T.sqrt(1. - beta_forward) + mu_coeff*T.sqrt(beta_forward)
         sigma = T.sqrt(beta_reverse)
         mu.name = 'mu p'
@@ -158,11 +168,6 @@ class DiffusionModel(Initializable):
 
         X_noiseless = X_noiseless.reshape(
             (-1, self.n_colors, self.spatial_width, self.spatial_width))
-
-        # # TODO DEBUG make training data 0-mean variance-1 earlier than this!
-        # # too small sample size here
-        # X_noiseless -= T.mean(X_noiseless)
-        # X_noiseless /= T.std(X_noiseless)
 
         n_images = X_noiseless.shape[0].astype('int16')
         rng = Random().theano_rng
@@ -191,7 +196,9 @@ class DiffusionModel(Initializable):
         beta_cumulative_prior_step = 1. - alpha_cum_forward/alpha_forward
 
         # generate the corrupted training data
-        X_noisy = X_noiseless*T.sqrt(alpha_cum_forward) + N*T.sqrt(1. - alpha_cum_forward)
+        X_uniformnoise = X_noiseless + (rng.uniform(size=(n_images, self.n_colors, self.spatial_width, self.spatial_width),
+            dtype=theano.config.floatX)-T.constant(0.5,dtype=theano.config.floatX))*T.constant(self.uniform_noise,dtype=theano.config.floatX)
+        X_noisy = X_uniformnoise*T.sqrt(alpha_cum_forward) + N*T.sqrt(1. - alpha_cum_forward)
 
         # compute the mean and covariance of the posterior distribution
         mu1_scl = T.sqrt(alpha_cum_forward / alpha_forward)
@@ -241,10 +248,10 @@ class DiffusionModel(Initializable):
         # conditional entropies H_q(x^T|x^0) and H_q(x^1|x^0)
         H_startpoint = (0.5*(1 + np.log(2.*np.pi))).astype(theano.config.floatX) + 0.5*T.log(self.beta_arr[0])
         H_endpoint = (0.5*(1 + np.log(2.*np.pi))).astype(theano.config.floatX) + 0.5*T.log(self.get_beta_full_trajectory())
-        H_prior = (0.5*(1 + np.log(2.*np.pi))).astype(theano.config.floatX) + 0.5*T.log(T.exp(1.))
+        H_prior = (0.5*(1 + np.log(2.*np.pi))).astype(theano.config.floatX) + 0.5*T.log(1.)
         negL_bound = KL*self.trajectory_length + H_startpoint - H_endpoint + H_prior
         # the negL_bound if this was an isotropic Gaussian model of the data
-        negL_gauss = (0.5*(1 + np.log(2.*np.pi))).astype(theano.config.floatX)
+        negL_gauss = (0.5*(1 + np.log(2.*np.pi))).astype(theano.config.floatX) + 0.5*T.log(1.)
         negL_diff = negL_bound - negL_gauss
         L_diff_bits = negL_diff / T.log(2.)
         L_diff_bits_avg = L_diff_bits.mean()*self.n_colors

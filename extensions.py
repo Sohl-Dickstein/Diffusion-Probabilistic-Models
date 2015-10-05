@@ -179,6 +179,53 @@ class PlotMonitors(SimpleExtension):
         plt.close('all')
 
 
+class LogLikelihood(SimpleExtension):
+    def __init__(self, model, test_stream, rescale, num_eval_batches=10000, **kwargs):
+        """
+        Compute and print log likelihood lower bound on test dataset.
+        The do() function is called as an extension during training.
+        """
+        super(LogLikelihood, self).__init__(**kwargs)
+        self.model = model
+        self.test_stream = test_stream
+        self.rescale = rescale
+        self.num_eval_batches = num_eval_batches
+
+        features = T.matrix('features', dtype=theano.config.floatX)
+        cost = self.model.cost(features)
+
+        self.L_gap_func = theano.function([features,], cost,
+            allow_input_downcast=True)
+
+    def print_stats(self, L_gap):
+        larr = np.array(L_gap)
+        mn = np.mean(larr)
+        sd = np.std(larr)
+        stderr = sd / np.sqrt(len(L_gap))
+
+        print "eval batch=%05d  K=%g bits/pix  standard error=%g bits/pix  Z-score rescale %g"%(
+            len(L_gap), mn, stderr, self.rescale)
+
+    def do(self, callback_name, *args):
+        L_gap = []
+        n_colors = self.model.n_colors
+
+        Xiter = None
+        for kk in xrange(self.num_eval_batches):
+            try:
+                X = next(Xiter)[0]
+            except:
+                Xiter = self.test_stream.get_epoch_iterator()
+                X = next(Xiter)[0]
+
+            lg = self.L_gap_func(X)
+            L_gap.append(lg)
+
+            if np.mod(kk, 1000) == 0:
+                self.print_stats(L_gap)
+        self.print_stats(L_gap)
+
+
 def decay_learning_rate(iteration, old_value):
     # TODO the numbers in this function should not be hard coded
 

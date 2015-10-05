@@ -4,7 +4,6 @@ Defines the function approximators
 
 import numpy as np
 import theano.tensor as T
-# from theano.tensor.signal import downsample
 
 from blocks.bricks import Activation, MLP, Initializable, application, Identity
 from blocks.bricks.conv import ConvolutionalActivation
@@ -18,7 +17,6 @@ class LeakyRelu(Activation):
         return T.switch(input_ > 0, input_, 0.05*input_)
 
 dense_nonlinearity = LeakyRelu()
-# dense_nonlinearity = Tanh()
 conv_nonlinearity = LeakyRelu()
 
 class MultiScaleConvolution(Initializable):
@@ -116,8 +114,7 @@ class MultiScaleConvolution(Initializable):
 class MultiLayerConvolution(Initializable):
     def __init__(self, n_layers, n_hidden, spatial_width, n_colors, n_scales, filter_size=3):
         """
-        A brick implementing a multi-layer convolutional network.
-        TODO make this multi-scale multi-layer convolution
+        A brick implementing a multi-layer, multi-scale convolutional network.
         """
         super(MultiLayerConvolution, self).__init__()
 

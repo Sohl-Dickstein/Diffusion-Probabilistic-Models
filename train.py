@@ -5,6 +5,7 @@ import warnings
 
 import theano
 import theano.tensor as T
+from theano.tensor.shared_randomstreams import RandomStreams
 
 from blocks.algorithms import (RMSProp, GradientDescent, CompositeRule,
     RemoveNotFinite)
@@ -61,7 +62,7 @@ def parse_args():
 
 
 if __name__ == '__main__':
-    # DEBUG
+    # TODO batches_per_epoch should not be hard coded
     batches_per_epoch = 500
     import sys
     sys.setrecursionlimit(10000000)
@@ -105,6 +106,8 @@ if __name__ == '__main__':
                                  batch_size=args.batch_size))
                              )
 
+    shp = next(train_stream.get_epoch_iterator())[0].shape
+
     # make the training data 0 mean and variance 1
     # TODO compute mean and variance on full dataset, not minibatch
     Xbatch = next(train_stream.get_epoch_iterator())[0]
@@ -113,9 +116,11 @@ if __name__ == '__main__':
     # scale is applied before shift
     train_stream = ScaleAndShift(train_stream, scl, shft)
     test_stream = ScaleAndShift(test_stream, scl, shft)
+    baseline_uniform_noise = 1./255. # appropriate for fuel MNIST and CIFAR10 at least
+    uniform_noise = baseline_uniform_noise/scl
 
     ## initialize the model
-    dpm = model.DiffusionModel(spatial_width, n_colors, **model_args)
+    dpm = model.DiffusionModel(spatial_width, n_colors, uniform_noise=uniform_noise, **model_args)
     dpm.initialize()
 
     ## set up optimization
@@ -143,6 +148,10 @@ if __name__ == '__main__':
             after_batch=False,
             every_n_batches=batches_per_epoch, ))
     extension_list.append(FinishAfter(after_n_epochs=100001))
+
+    ## logging of test set performance
+    extension_list.append(extensions.LogLikelihood(dpm, test_stream, scl,
+        every_n_batches=args.ext_every_n*batches_per_epoch, before_training=False))
 
     ## set up logging
     extension_list.extend([Timing(), Printing()])
@@ -187,4 +196,3 @@ if __name__ == '__main__':
                          data_stream=train_stream,
                          extensions=extension_list)
     main_loop.run()
-

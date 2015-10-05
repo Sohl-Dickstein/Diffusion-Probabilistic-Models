@@ -221,7 +221,7 @@ class LogLikelihood(SimpleExtension):
             lg = self.L_gap_func(X)
             L_gap.append(lg)
 
-            if np.mod(kk, 1000) == 0:
+            if np.mod(kk, 1000) == 999:
                 self.print_stats(L_gap)
         self.print_stats(L_gap)
 

@@ -207,7 +207,7 @@ class DiffusionModel(Initializable):
         cov2 = beta_forward / alpha_forward
         lam = 1./cov1 + 1./cov2
         mu = (
-                X_noiseless * mu1_scl / cov1 +
+                X_uniformnoise * mu1_scl / cov1 +
                 X_noisy * mu2_scl / cov2
             ) / lam
         sigma = T.sqrt(1./lam)

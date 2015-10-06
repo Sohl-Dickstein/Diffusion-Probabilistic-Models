@@ -221,7 +221,7 @@ class LogLikelihood(SimpleExtension):
                 Xiter = self.test_stream.get_epoch_iterator()
                 X = next(Xiter)[0]
 
-            lg = self.L_gap_func(X)
+            lg = -self.L_gap_func(X)
             L_gap.append(lg)
 
             if np.mod(kk, 1000) == 999:

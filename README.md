@@ -23,6 +23,9 @@ In order to train a diffusion probabilistic model on the default dataset of MNIS
 1. Install `Blocks` and its dependencies following [these instructions](http://blocks.readthedocs.org/en/latest/setup.html)
 2. Setup `Fuel` and download MNIST following [these instructions](https://github.com/mila-udem/fuel/blob/master/docs/built_in_datasets.rst).
 
+As of October 16, 2015 this code requires the bleeding edge, rather than stable, versions of both Blocks and Fuel. (thanks to David Hofmann for ponting out that the stable release will not work due to an interface change)
+
+
 ### Output
 
 The objective function being minimized is the bound on the negative log likelihood in bits per pixel, minus the negative log likelihood under an identity-covariance Gaussian model. That is, it is the negative of the number in the rightmost column in Table 1 in the paper.

@@ -206,7 +206,7 @@ class LogLikelihood(SimpleExtension):
         # The log likelihood lower bound, K, is reported for the data after Z-scoring it.
         # Z-score rescale is the multiplicative factor by which the data was rescaled, to
         # give it standard deviation 1.
-        print "eval batch=%05d  K=%g bits/pix  standard error=%g bits/pix  Z-score rescale %g"%(
+        print "eval batch=%05d  (K-L_null)=%g bits/pix  standard error=%g bits/pix  Z-score rescale %g"%(
             len(L_gap), mn, stderr, self.rescale)
 
     def do(self, callback_name, *args):

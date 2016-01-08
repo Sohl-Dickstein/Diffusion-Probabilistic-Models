@@ -23,7 +23,7 @@ In order to train a diffusion probabilistic model on the default dataset of MNIS
 1. Install `Blocks` and its dependencies following [these instructions](http://blocks.readthedocs.org/en/latest/setup.html)
 2. Setup `Fuel` and download MNIST following [these instructions](https://github.com/mila-udem/fuel/blob/master/docs/built_in_datasets.rst).
 
-As of October 16, 2015 this code requires the bleeding edge, rather than stable, versions of both Blocks and Fuel. (thanks to David Hofmann for ponting out that the stable release will not work due to an interface change)
+As of October 16, 2015 this code requires the bleeding edge, rather than stable, versions of both Blocks and Fuel. (thanks to David Hofmann for pointing out that the stable release will not work due to an interface change)
 
 
 ### Output

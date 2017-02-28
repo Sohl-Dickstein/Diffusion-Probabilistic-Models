@@ -1,9 +1,9 @@
 # Diffusion Probabilistic Models
 
 This repository provides a reference implementation of the method described in the paper:<br>
-> Deep Unsupervised Learning using Nonequilibrium Thermodynamics.<br>
-> Sohl-Dickstein, Jascha and Weiss, Eric A. and Maheswaranathan, Niru and Ganguli, Surya.<br>
-> International Conference on Machine Learning. 2015<br>
+> Deep Unsupervised Learning using Nonequilibrium Thermodynamics<br>
+> Jascha Sohl-Dickstein, Eric A. Weiss, Niru Maheswaranathan, Surya Ganguli<br>
+> International Conference on Machine Learning, 2015<br>
 > http://arxiv.org/abs/1503.03585
 
 This implementation builds a generative model of data by training a Gaussian diffusion process to transform a noise distribution into a data distribution in a fixed number of time steps.
